@@ -2,9 +2,9 @@ const url = "https://sheets.googleapis.com/v4/spreadsheets/1YO-Vl4DO-lnp8sQpFlcX
 
 function linkuize(text, link) {
     if(link != undefined)
-        return `<a href = "${link}" target="_blank"> ${text}</a>`
+    return `<a href = "${link}" target="_blank"> ${text}</a>`
     else
-        return ""
+    return ""
 }
 
 function getCountry(text){
@@ -50,8 +50,10 @@ function reformat_numbers(num) {
     } else if (values.length == 2) {
         return values[0] + 'K'
     } else
-        return values[0] + 'M'
+    return values[0] + 'M'
 }
+
+var dataset = []
 
 axios.get(url, {
     // TODO:: Adding a download progress bar. * IT CANNOT BE APPLIED BECAUSE THE SIZE OF THE ENCODING DATA. *
@@ -60,89 +62,139 @@ axios.get(url, {
         //     (progressEvent.loaded * 100) / progressEvent.total
         //   );
         // console.log('download', percentage);        
-      }
+    }
 }).then(function(response) {
-        let rowData = response.data.sheets[0].data[0].rowData
-        let headers = []
-        let headersWhiteList = ['No.', 'Name', 'Link', 'Year', 'Dialect', 'Volume', 'Unit', 'Paper Link', 'Access', 'Tasks']
-        $('.loading-spinner').hide()
-
-        // Grabbing header's index's to help us to get value's of just by header index 
-        rowData[1].values.filter(header => header.formattedValue != undefined).forEach((header, headerIndex) => {
-            if (headersWhiteList.includes(header.formattedValue)){
-                headers.push({
-                    index: headerIndex,
-                    title: header.formattedValue
-                })
-            }
-        })
-
-        let tempRows = []
-        rowData.filter(row => {
-            tempRows.push(row.values)
-        })
-        
-        // Grabbing row's values
-        let rows = []
-        for (let index = 2; index < tempRows.length; index++) {
-            const fileds = tempRows[index]
-            if (fileds != undefined) {
-                if (!isNaN(fileds[0].formattedValue)){
-                    rows.push(fileds)
-                }
-            }
-            
-        }
-        
-        //  Createing table data
-        let dataset = []
-        for (let index = 0; index < rows.length; index++) {
-            const row = rows[index];
-            const hf_link = row[headers[2].index + 1].formattedValue
-            const pr_text = row[headers[2].index + 19].formattedValue
-            const pr_link = row[headers[2].index].formattedValue
-
-            dataset.push({
-                0: row[headers[0].index].formattedValue,
-                1: linkuize(row[headers[1].index].formattedValue, `card.html?${index}`),
-                2: linkuize(getIcon(pr_text), pr_link)+'</br>'
-                +  linkuize(getIcon('hf'), hf_link),
-                3: row[headers[3].index].formattedValue,
-                4: getCountry(row[headers[4].index].formattedValue),
-                5: row[headers[5].index].formattedValue ? row[headers[5].index].formattedValue : '',
-                6: row[headers[6].index].formattedValue ? row[headers[6].index].formattedValue : '',
-                7: linkuize(row[headers[7].index - 1].formattedValue, row[headers[7].index].formattedValue),
-                8: badgeRender(row[headers[8].index].formattedValue),
-                9: itemize(row[headers[9].index].formattedValue),
+    let rowData = response.data.sheets[0].data[0].rowData
+    let headers = []
+    let headersWhiteList = ['No.', 'Name', 'Link', 'Year', 'Dialect', 'Volume', 'Unit', 'Paper Link', 'Access', 'Tasks']
+    $('.loading-spinner').hide()
+    
+    // Grabbing header's index's to help us to get value's of just by header index 
+    rowData[1].values.filter(header => header.formattedValue != undefined).forEach((header, headerIndex) => {
+        if (headersWhiteList.includes(header.formattedValue)){
+            headers.push({
+                index: headerIndex,
+                title: header.formattedValue
             })
         }
-
-        $.extend($.fn.dataTableExt.oSort, {
-            "data-custom-pre": function(a) {
-                console.log(a)
+    })
+    
+    let tempRows = []
+    rowData.filter(row => {
+        tempRows.push(row.values)
+    })
+    
+    // Grabbing row's values
+    let rows = []
+    for (let index = 2; index < tempRows.length; index++) {
+        const fileds = tempRows[index]
+        if (fileds != undefined) {
+            if (!isNaN(fileds[0].formattedValue)){
+                rows.push(fileds)
+            }
+        }
+        
+    }
+    
+    //  Createing table data
+    for (let index = 0; index < rows.length; index++) {
+        const row = rows[index];
+        const hf_link = row[headers[2].index + 1].formattedValue
+        const pr_text = row[headers[2].index + 19].formattedValue
+        const pr_link = row[headers[2].index].formattedValue
+        
+        dataset.push({
+            0: row[headers[0].index].formattedValue,
+            1: linkuize(row[headers[1].index].formattedValue, `card.html?${index}`),
+            2: linkuize(getIcon(pr_text), pr_link)+'</br>'
+            +  linkuize(getIcon('hf'), hf_link),
+            3: row[headers[3].index].formattedValue,
+            4: getCountry(row[headers[4].index].formattedValue),
+            5: row[headers[5].index].formattedValue ? row[headers[5].index].formattedValue : '',
+            6: row[headers[6].index].formattedValue ? row[headers[6].index].formattedValue : '',
+            7: linkuize(row[headers[7].index - 1].formattedValue, row[headers[7].index].formattedValue),
+            8: badgeRender(row[headers[8].index].formattedValue),
+            9: itemize(row[headers[9].index].formattedValue),
+        })
+    }
+    
+    $.extend($.fn.dataTableExt.oSort, {
+        "data-custom-pre": function(a) {
+            console.log(a)
+        }
+    });
+    
+    $(document).ready(function() {
+        document.getElementById("numDatasets").textContent=dataset.length;
+        $('#table').DataTable({
+            data: dataset,
+            columns: headers,
+            "lengthMenu": [[10, 100, 200, 300, 400, -1], [10, 100, 200, 300, 400, "All"]],
+            scrollCollapse: true,
+            paging: true,
+            'bLengthChange':false,
+            "pagingType": "numbers",
+            "bInfo": false,
+            'createdRow': function(row, data, dataIndex){
+                $('td:eq(9)', row).css('min-width', '200px');
             }
         });
 
-        $(document).ready(function() {
-            document.getElementById("numDatasets").textContent=dataset.length;
-            $('#table').DataTable({
-                data: dataset,
-                columns: headers,
-                "lengthMenu": [[10, 100, 200, 300, 400, -1], [10, 100, 200, 300, 400, "All"]],
-                scrollCollapse: true,
-                paging: true,
-                "pagingType": "numbers",
-                "bInfo": false,
-                'createdRow': function(row, data, dataIndex){
-                    $('td:eq(9)', row).css('min-width', '200px');
-                 }
-            });
-
-        });
-
-
-
-    })
-    .catch(function(error) {
-        console.log(error);
+        // show search bar after the data is loaded
+        $("#search").show()
     });
+    
+    
+    
+})
+.catch(function(error) {
+    console.log(error);
+});
+
+// Filteration functions
+
+let filter_words = []
+
+$.fn.enterKey = function (fnc) {
+    return this.each(function () {
+        $(this).keypress(function (ev) {
+            var keycode = (ev.keyCode ? ev.keyCode : ev.which);
+            if (keycode == '13') {
+                fnc.call(this, ev);
+            }
+        })
+    })
+}
+
+$("#search").enterKey(function () {
+    let text = $("#search").val()
+    $("#search").val("")
+    filter_words.push(text)
+    update_tags()
+    update_table()
+})
+
+$(document).on('click','#tags p',function() {
+    text = $(this).text()
+    console.log(text)
+    filter_words = filter_words.filter(e => e != text)
+    $(this).remove();
+    update_table()
+});
+
+function update_table(){
+    let query = filter_words.join(" ")
+    var table = $('#table').DataTable();
+    table.search( query ).draw();
+    
+}
+
+function update_tags(){
+    $("#tags").empty()
+    $.each(filter_words, function(i){
+        word = filter_words[i]
+        element = $("#tags").append("<p>"+word+"</p>");
+    })
+}
+
+
